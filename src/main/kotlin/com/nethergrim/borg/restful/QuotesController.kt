@@ -1,6 +1,9 @@
 package com.nethergrim.borg.restful
 
-import com.nethergrim.borg.data.BashorgParser
+import com.nethergrim.borg.data.QuotesRepository
+import com.nethergrim.borg.data.getBorgPage
+import com.nethergrim.borg.data.lastBorgPageNumber
+import com.nethergrim.borg.data.parseBorgPageFromTop
 import com.nethergrim.borg.entities.Quote
 import com.nethergrim.borg.entities.QuotesResponse
 import com.nethergrim.borg.helpers.RetryWithDelay
@@ -25,33 +28,33 @@ open class QuotesController {
     fun handleGetQuotes(@RequestParam (value = "limit", defaultValue = "20") limit: String,
                         @RequestParam (value = "offset", defaultValue = "0") offset: String): QuotesResponse {
 
-        return QuotesResponse(BashorgParser.parsePageFromTop(1), "result for limit $limit and offset $offset")
+        return QuotesResponse(QuotesRepository.getRandomQuotes(Integer.parseInt(limit)) as List<Quote>, "result for limit $limit and offset $offset")
     }
 
     @RequestMapping(method = arrayOf(RequestMethod.GET), value = "/top")
     fun handleGetTopQuotes(@RequestParam (value = "limit", defaultValue = "20") limit: String,
                            @RequestParam (value = "offset", defaultValue = "0") offset: String): QuotesResponse {
 
-        return QuotesResponse(BashorgParser.parsePageFromTop(1), "result for limit $limit and offset $offset")
+        return QuotesResponse(parseBorgPageFromTop(1), "result for limit $limit and offset $offset")
     }
 
 
     @RequestMapping(method = arrayOf(RequestMethod.POST))
     fun handlePostQuotes(): QuotesResponse {
-        BashorgParser.getPage(Int.MAX_VALUE)
+        getBorgPage(Int.MAX_VALUE)
 
 
         val indexes = ArrayList<Int>()
-        for (i in BashorgParser.lastPageNumber downTo 1 step 1) {
+        for (i in lastBorgPageNumber downTo 1 step 1) {
             indexes.add(i)
         }
 
-        val countDown = CountDownLatch(BashorgParser.lastPageNumber)
+        val countDown = CountDownLatch(lastBorgPageNumber)
 
         Observable.from(indexes)
                 .subscribeOn(Schedulers.from(Executors.newFixedThreadPool(60)))
-                .flatMap({ Observable.just(BashorgParser.getPage(it)) }, 60)
-
+                .flatMap({ Observable.just(getBorgPage(it)) }, 60)
+                .doOnNext { QuotesRepository.saveQuotes(it) }
                 .retryWhen(RetryWithDelay(10, 300))
                 .subscribe({ countDown.countDown() }, { countDown.countDown() })
         countDown.await()
