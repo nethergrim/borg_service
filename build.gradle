@@ -38,6 +38,9 @@ dependencies {
 	compile("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 	compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+    compile 'org.jsoup:jsoup:1.8.1' // html parcing
+    compile 'org.apache.commons:commons-lang3:3.3.2'
 }
 
 
