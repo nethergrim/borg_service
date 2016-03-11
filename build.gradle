@@ -41,6 +41,9 @@ dependencies {
 
     compile 'org.jsoup:jsoup:1.8.1' // html parcing
     compile 'org.apache.commons:commons-lang3:3.3.2'
+
+    compile 'io.reactivex:rxkotlin:0.50.0'
+    compile 'io.reactivex:rxjava:1.1.1'
 }
 
 

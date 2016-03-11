@@ -1,11 +1,18 @@
 package com.nethergrim.borg.restful
 
+import com.nethergrim.borg.data.BashorgParser
 import com.nethergrim.borg.entities.Quote
 import com.nethergrim.borg.entities.QuotesResponse
+import com.nethergrim.borg.helpers.RetryWithDelay
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import rx.Observable
+import rx.schedulers.Schedulers
+import java.util.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
 /**
  * @author Andrey Drobyazko (c2q9450@gmail.com).
@@ -18,13 +25,38 @@ open class QuotesController {
     fun handleGetQuotes(@RequestParam (value = "limit", defaultValue = "20") limit: String,
                         @RequestParam (value = "offset", defaultValue = "0") offset: String): QuotesResponse {
 
+        return QuotesResponse(BashorgParser.parsePageFromTop(1), "result for limit $limit and offset $offset")
+    }
 
-        val q1 = Quote(1, "лол тут цитатка", 5, "10.05.1990", System.currentTimeMillis())
-        val q2 = Quote(2, "лол тут цитатка ", 52, "10.05.1990", System.currentTimeMillis())
-        val q3 = Quote(3, "лол тут цитатка  ", 51, "10.05.1990", System.currentTimeMillis())
-        val q4 = Quote(4, "лол тут цитатка  ", 15, "10.05.1990", System.currentTimeMillis())
+    @RequestMapping(method = arrayOf(RequestMethod.GET), value = "/top")
+    fun handleGetTopQuotes(@RequestParam (value = "limit", defaultValue = "20") limit: String,
+                           @RequestParam (value = "offset", defaultValue = "0") offset: String): QuotesResponse {
 
-        return QuotesResponse(arrayOf(q1, q2, q3, q4), "result for limit $limit and offset $offset")
+        return QuotesResponse(BashorgParser.parsePageFromTop(1), "result for limit $limit and offset $offset")
+    }
+
+
+    @RequestMapping(method = arrayOf(RequestMethod.POST))
+    fun handlePostQuotes(): QuotesResponse {
+        BashorgParser.getPage(Int.MAX_VALUE)
+
+
+        val indexes = ArrayList<Int>()
+        for (i in BashorgParser.lastPageNumber downTo 1 step 1) {
+            indexes.add(i)
+        }
+
+        val countDown = CountDownLatch(BashorgParser.lastPageNumber)
+
+        Observable.from(indexes)
+                .subscribeOn(Schedulers.from(Executors.newFixedThreadPool(60)))
+                .flatMap({ Observable.just(BashorgParser.getPage(it)) }, 60)
+
+                .retryWhen(RetryWithDelay(10, 300))
+                .subscribe({ countDown.countDown() }, { countDown.countDown() })
+        countDown.await()
+
+        return QuotesResponse(emptyList<Quote>(), "fetched")
     }
 
 }
