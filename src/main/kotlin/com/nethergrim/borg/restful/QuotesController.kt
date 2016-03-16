@@ -4,8 +4,6 @@ import com.nethergrim.borg.data.FetchAllQuotesTask
 import com.nethergrim.borg.data.parseBorgPageFromTop
 import com.nethergrim.borg.entities.Quote
 import com.nethergrim.borg.entities.QuotesResponse
-import com.nethergrim.borg.storage.QuotesRepository
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
@@ -16,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
  * All rights reserved.
  */
 @RestController(value = "/borg/quotes")
-open class QuotesController @Autowired constructor(val repository: QuotesRepository) {
+open class QuotesController {
 
     @RequestMapping(method = arrayOf(RequestMethod.GET))
     fun handleGetQuotes(@RequestParam (value = "limit", defaultValue = "20") limit: String,
@@ -39,7 +37,7 @@ open class QuotesController @Autowired constructor(val repository: QuotesReposit
 
     @RequestMapping(method = arrayOf(RequestMethod.POST))
     fun handlePostQuotes(): QuotesResponse {
-        FetchAllQuotesTask.instance.fetchAllQuotes(repository);
+        FetchAllQuotesTask.instance.fetchAllQuotes();
         return QuotesResponse(emptyList<Quote>(), "fetched all quotes")
     }
 

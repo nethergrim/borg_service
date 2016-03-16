@@ -17,7 +17,7 @@ class FetchAllQuotesTask private constructor() {
         val instance: FetchAllQuotesTask by lazy { FetchAllQuotesTask.Holder.INSTANCE }
     }
 
-    fun fetchAllQuotes(repository: QuotesRepository) {
+    fun fetchAllQuotes() {
         println("Fetching all quotes")
         getBorgPage(Int.MAX_VALUE)
         println("Fetching from $lastBorgPageNumber to 1")
@@ -31,7 +31,7 @@ class FetchAllQuotesTask private constructor() {
                 val quotes = getBorgPage(index)
 
                 println("Fetched page $index, saving to the database")
-                repository.save(quotes)
+                QuotesRepository.instance.saveQuotes(quotes)
             })
         }
     }
